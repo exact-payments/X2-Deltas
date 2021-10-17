@@ -137,7 +137,7 @@ export const getMin = <A, B>(a: A, b: B): A | B => {
   } else if (a instanceof Date && b instanceof Date) {
     return new Date(Math.min(a.getTime(), b.getTime())) as any
   } else {
-    return deltaTypeWeight.indexOf(getType(a)) < deltaTypeWeight.indexOf(getType(b))
+    return deltaTypeWeight.indexOf(getType(a)) > deltaTypeWeight.indexOf(getType(b))
       ? a as any
       : b as any
   }
@@ -269,7 +269,7 @@ export const applyAddToSet = (object: Record<string, any>, addToSetPaths: Record
     const item = addToSetPaths[path]
     if (item && typeof item === 'object' && item.$each instanceof Array) {
       if (!value) {
-        setPath(object, path, item.$each.slice(0))
+        setPath(object, path, [...new Set(item.$each)])
         continue
       }
       for (const subItem of item.$each) {
@@ -336,7 +336,7 @@ export type ApplyDeltaOptions = {
   asInsert?: boolean
 }
 
-export const applyDelta = <O extends Record<string, any>, U extends Delta>(
+export const applyDelta = <O extends Record<string, any>, U extends Record<string, any>>(
   object: O,
   delta: U,
   options?: ApplyDeltaOptions,
@@ -344,7 +344,7 @@ export const applyDelta = <O extends Record<string, any>, U extends Delta>(
   const keys = Object.keys(delta)
 
   if (keys.some((k: any) => !deltaOperators.includes(k))) {
-    return JSON.parse(JSON.stringify(delta))
+    return delta as any
   }
 
   for (const operator in delta) {

@@ -1,6 +1,15 @@
 import { applyDelta } from '../apply-delta'
 
 describe('applyDelta', () => {
+  it('returns the delta as a replacement document is it isn\'t a valid delta', () => {
+    expect(applyDelta({
+      a: 1,
+    }, {
+      x: 1,
+    })).toMatchObject({
+      x: 1,
+    })
+  })
   describe('$currentDate', () => {
     it('sets the current date at the specified paths', () => {
       expect(applyDelta({
@@ -58,13 +67,15 @@ describe('applyDelta', () => {
       expect(applyDelta({
         a: 5,
         c: { a: 5 },
-        e: 5,
+        e: new Date(1630000000000),
         d: 5,
+        f: new Date(1600000000000),
       }, {
         $min: {
           a    : 1,
           'b.a': 2,
-          e    : 7,
+          e    : new Date(1600000000000),
+          f    : 10,
         },
       })).toMatchObject({
         a: 1,
@@ -74,8 +85,9 @@ describe('applyDelta', () => {
         c: {
           a: 5,
         },
-        e: 5,
+        e: new Date(1600000000000),
         d: 5,
+        f: 10,
       })
     })
   })
@@ -85,13 +97,15 @@ describe('applyDelta', () => {
       expect(applyDelta({
         a: 5,
         c: { a: 5 },
-        e: 5,
+        e: new Date(1630000000000),
         d: 5,
+        f: new Date(1600000000000),
       }, {
         $max: {
           a    : 1,
           'b.a': 2,
-          e    : 7,
+          e    : new Date(1600000000000),
+          f    : 10,
         },
       })).toMatchObject({
         a: 5,
@@ -101,8 +115,9 @@ describe('applyDelta', () => {
         c: {
           a: 5,
         },
-        e: 7,
+        e: new Date(1630000000000),
         d: 5,
+        f: new Date(1600000000000),
       })
     })
   })
@@ -241,19 +256,23 @@ describe('applyDelta', () => {
         c: { a: [1, 2, 2, 3] },
         e: 5,
         d: 5,
+        f: [5, 7],
       }, {
         $addToSet: {
           a    : 4,
           'b.a': 5,
+          'b.b': { $each: [5, 5] },
           'c.a': { $each: [3, 4, 5] },
           e    : 1,
+          f    : 7,
         },
       })).toMatchObject({
         a: [1, 2, 3, 4],
-        b: { a: [5] },
+        b: { a: [5], b: [5] },
         c: { a: [1, 2, 2, 3, 4, 5] },
         e: 5,
         d: 5,
+        f: [5, 7],
       })
     })
   })
