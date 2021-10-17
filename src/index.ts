@@ -1,2 +1,2 @@
-export { validateDelta } from './validate-delta'
-export { normalizeDelta } from './normalize-delta'
+export * from './apply-delta'
+export * from './validate-delta'
