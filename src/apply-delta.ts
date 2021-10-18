@@ -230,7 +230,7 @@ export const applyMax = (object: Record<string, any>, maxPaths: Record<string, a
   }
 }
 
-export const applyMul = (object: Record<string, number>, mulPaths: Record<string, number>) => {
+export const applyMul = (object: Record<string, any>, mulPaths: Record<string, number>) => {
   for (const path in mulPaths) {
     const currentValue = getPath(object, path)
     if (currentValue === undefined) {
@@ -336,12 +336,20 @@ export type ApplyDeltaOptions = {
   asInsert?: boolean
 }
 
-export const applyDelta = <O extends Record<string, any>, U extends Record<string, any>>(
+export const applyDelta = <O, U>(
   object: O,
   delta: U,
   options?: ApplyDeltaOptions,
-): U extends Delta ? ApplyDeltaResult<O, U> : U => {
+): O extends Record<string, any>
+    ? U extends Delta
+      ? ApplyDeltaResult<O, U>
+      : U
+    : O => {
   const keys = Object.keys(delta)
+
+  if (!object || typeof object !== 'object' || !delta || typeof delta !== 'object') {
+    return object as any
+  }
 
   if (keys.some((k: any) => !deltaOperators.includes(k))) {
     return delta as any
