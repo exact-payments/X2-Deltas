@@ -1,1 +1,8 @@
+# Team Lead
 * @RobertWHurst
+
+# Source Reviewers
+*.js *.json *.lock /src @rubenmezar @javier-cervantes-3pillarglobal @RobertWHurst
+
+# Operations
+Dockerfile Dockerfile.* .dockerignore /.github/workflows @sekka1 @mybarretto @RobertWHurst
