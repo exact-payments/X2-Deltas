@@ -2,7 +2,7 @@
 * @RobertWHurst
 
 # Source Reviewers
-*.js *.json *.lock /src @rubenmezar @javier-cervantes-3pillarglobal @RobertWHurst
+*.js *.json *.lock /src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst
 
 # Operations
-Dockerfile Dockerfile.* .dockerignore /.github/workflows @sekka1 @mybarretto @RobertWHurst
+Dockerfile Dockerfile.* .dockerignore /.github/workflows/ @sekka1 @mybarretto @RobertWHurst
