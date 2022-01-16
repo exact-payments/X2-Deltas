@@ -1,4 +1,4 @@
-import { Query } from './apply-query'
+import { Query } from './query'
 
 export type ProjectQuery<Q extends Query, P extends Record<string, string>> = {
   [F in keyof Q as F extends `$${string}`

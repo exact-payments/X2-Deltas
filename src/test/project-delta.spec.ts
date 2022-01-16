@@ -1,6 +1,6 @@
 import { projectDelta } from '../project-delta'
 
-describe('projectDelta', () => {
+describe('projectDelta(delta, projection) -> projectedDelta', () => {
   it('correctly projects new paths for a delta', () => {
     expect(projectDelta({
       $set: {

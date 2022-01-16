@@ -1,6 +1,6 @@
 import { applyDelta } from '../apply-delta'
 
-describe('applyDelta', () => {
+describe('applyDelta(target, delta) -> target', () => {
   it('returns the delta as a replacement document is it isn\'t a valid delta', () => {
     expect(applyDelta({
       a: 1,

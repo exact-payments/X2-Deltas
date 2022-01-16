@@ -1,5 +1,4 @@
-import { getMax, getMin } from '.'
-import { Delta, deltaOperators, Operator } from './delta'
+import { getMax, getMin, Delta, deltaOperators, Operator } from './delta'
 import { DeepUnset, deletePath, ExpandPathObject, getPath, GetValueAtPath, setPath } from './path'
 
 export type ApplyRename<O, U> = U extends { $rename: infer D }

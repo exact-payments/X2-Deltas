@@ -1,33 +1,6 @@
-import { deltaTypeWeight, getType } from './delta'
+import { getType } from './delta'
 import { getPath } from './path'
-
-export type Query = {
-  $and?: Record<string, any>[]
-  $not?: Record<string, any>[]
-  $nor?: Record<string, any>[]
-  $or ?: Record<string, any>[]
-  [k: string]: any
-}
-
-const matchesExpr = (expression: any, document: Record<string, any>) => {
-  console.warn('$expr not implemented')
-  return false
-}
-
-const matchesJsonSchema = (jsonSchema: any, document: Record<string, any>) => {
-  console.warn('$jsonSchema not implemented')
-  return false
-}
-
-const matchesText = (text: any, document: Record<string, any>) => {
-  console.warn('$text not implemented')
-  return false
-}
-
-const matchesWhere = (text: any, document: Record<string, any>) => {
-  console.warn('$text not implemented')
-  return false
-}
+import { Query } from './query'
 
 const matchesEq = ($eq: any, field: any) => {
   const fieldIsObject = field && typeof field === 'object'
@@ -63,19 +36,13 @@ const matchesEq = ($eq: any, field: any) => {
 const matchesGt = ($gt: any, field: any) => {
   const $gtType   = getType($gt)
   const fieldType = getType(field)
-  if ($gtType !== fieldType) {
-    return deltaTypeWeight.indexOf(fieldType) > deltaTypeWeight.indexOf($gtType)
-  }
-  return field < $gt
+  return $gtType === fieldType && field > $gt
 }
 
 const matchesGte = ($gte: any, field: any) => {
   const $gteType  = getType($gte)
   const fieldType = getType(field)
-  if ($gteType !== fieldType) {
-    return deltaTypeWeight.indexOf(fieldType) >= deltaTypeWeight.indexOf($gteType)
-  }
-  return field >= $gte
+  return $gteType === fieldType && field >= $gte
 }
 
 const matchesIn = ($in: any, field: any) => {
@@ -88,19 +55,13 @@ const matchesIn = ($in: any, field: any) => {
 const matchesLt = ($lt: any, field: any) => {
   const $ltType   = getType($lt)
   const fieldType = getType(field)
-  if ($ltType !== fieldType) {
-    return deltaTypeWeight.indexOf(fieldType) < deltaTypeWeight.indexOf($ltType)
-  }
-  return field < $lt
+  return $ltType === fieldType && field < $lt
 }
 
 const matchesLte = ($lte: any, field: any) => {
   const $lteType  = getType($lte)
   const fieldType = getType(field)
-  if ($lteType !== fieldType) {
-    return deltaTypeWeight.indexOf(fieldType) <= deltaTypeWeight.indexOf($lteType)
-  }
-  return field <= $lte
+  return $lteType === fieldType && field <= $lte
 }
 
 const matchesNe = ($ne: any, field: any) => {
@@ -118,52 +79,39 @@ const matchesExists = ($exists: any, field: any) => {
 }
 
 const matchesType = ($type: any, field: any) => {
-  const $gteType  = getType($type)
   const fieldType = getType(field)
-  return $gteType === fieldType
+  return $type === fieldType
 }
 
 const matchesMod = ($mod: any, field: any) => {
-  console.warn('$mod not implemented')
-  return false
+  if (
+    !$mod ||
+    typeof $mod !== 'object' ||
+    $mod.length !== 2 ||
+    typeof $mod[0] !== 'number' ||
+    typeof $mod[1] !== 'number'
+  ) { throw new Error('$mod needs an array with two numbers') }
+  return field % $mod[0] === $mod[1]
 }
 
-const matchesRegex = ($regex: any, field: any) => {
-  console.warn('$regex not implemented')
-  return false
+const matchesRegex = ($regex: any, $options: any, field: any) => {
+  if (typeof $regex !== 'string' && !($regex instanceof RegExp)) {
+    throw new Error('$regex needs a string or regular expression')
+  }
+  if (!!$options && typeof $options !== 'string') {
+    throw new Error('$options needs a string if provided')
+  }
+  if (typeof $regex === 'string') {
+    $regex = RegExp($regex, $options)
+  } else if ($options) {
+    $regex = RegExp($regex.source, $options)
+  }
+  return $regex.test(field)
 }
 
 const matchesQuery = (query: Record<string, any>, document: Record<string, any>) => {
   let isMatch = true
   for (const path in query) {
-    if (path === '$expr') {
-      if (!matchesExpr(query[path], document)) {
-        isMatch = false
-        break
-      }
-    }
-
-    if (path === '$jsonSchema') {
-      if (!matchesJsonSchema(query[path], document)) {
-        isMatch = false
-        break
-      }
-    }
-
-    if (path === '$text') {
-      if (!matchesText(query[path], document)) {
-        isMatch = false
-        break
-      }
-    }
-
-    if (path === '$where') {
-      if (!matchesWhere(query[path], document)) {
-        isMatch = false
-        break
-      }
-    }
-
     const queryOperator = query[path]
     const value         = getPath(document, path)
 
@@ -176,6 +124,7 @@ const matchesQuery = (query: Record<string, any>, document: Record<string, any>)
         isMatch = false
         break
       }
+      continue
     }
 
     if ('$eq' in queryOperator) {
@@ -256,66 +205,83 @@ const matchesQuery = (query: Record<string, any>, document: Record<string, any>)
     }
 
     if ('$regex' in queryOperator) {
-      if (!matchesRegex(queryOperator.$regex, value)) {
+      if (!matchesRegex(queryOperator.$regex, queryOperator.$options, value)) {
         isMatch = false
         break
       }
     }
+
+    // TODO: implement geospatial query operators
   }
+
   return isMatch
 }
 
-export const applyQuery = <D extends Record<string, any>>(query: Query, documents: D[]): D[] => {
+export const applyQuery = <D extends Record<string, any>>(documents: D[], query: Query): D[] => {
   const andQueries = query.$and ?? []
   const norQueries = query.$nor ?? []
   const orQueries  = query.$or ?? []
-  andQueries.push(query)
+
+  const rootQueryFields = Object.keys(query).filter(f => !f.startsWith('$'))
+  if (rootQueryFields.length !== 0) {
+    const rootQuery: Record<string, any> = {}
+    for (const field of rootQueryFields) {
+      rootQuery[field] = query[field]
+    }
+    andQueries.push(rootQuery)
+  }
 
   const documentPool         = documents.slice()
   const documentMatches: D[] = []
 
-  for (let i = 0; i < documentPool.length; i += 1) {
-    let isAndMatch = true
-    for (const query of andQueries) {
-      if (!matchesQuery(query, documentPool[i])) {
-        isAndMatch = false
-        break
+  if (andQueries.length !== 0) {
+    for (let i = 0; i < documentPool.length; i += 1) {
+      let isAndMatch = true
+      for (const q of andQueries) {
+        if (!matchesQuery(q, documentPool[i])) {
+          isAndMatch = false
+          break
+        }
       }
-    }
-    if (isAndMatch) {
-      documentMatches.push(documentPool[i])
-      documentPool.splice(i, 1)
-      i -= 1
+      if (isAndMatch) {
+        documentMatches.push(documentPool[i])
+        documentPool.splice(i, 1)
+        i -= 1
+      }
     }
   }
 
-  for (let i = 0; i < documentPool.length; i += 1) {
-    let isAndMatch = true
-    for (const query of norQueries) {
-      if (matchesQuery(query, documentPool[i])) {
-        isAndMatch = false
-        break
+  if (norQueries.length !== 0) {
+    for (let i = 0; i < documentPool.length; i += 1) {
+      let isAndMatch = true
+      for (const q of norQueries) {
+        if (matchesQuery(q, documentPool[i])) {
+          isAndMatch = false
+          break
+        }
       }
-    }
-    if (isAndMatch) {
-      documentMatches.push(documentPool[i])
-      documentPool.splice(i, 1)
-      i -= 1
+      if (isAndMatch) {
+        documentMatches.push(documentPool[i])
+        documentPool.splice(i, 1)
+        i -= 1
+      }
     }
   }
 
-  for (let i = 0; i < documentPool.length; i += 1) {
-    let isAndMatch = false
-    for (const query of orQueries) {
-      if (matchesQuery(query, documentPool[i])) {
-        isAndMatch = true
-        break
+  if (orQueries.length !== 0) {
+    for (let i = 0; i < documentPool.length; i += 1) {
+      let isAndMatch = false
+      for (const q of orQueries) {
+        if (matchesQuery(q, documentPool[i])) {
+          isAndMatch = true
+          break
+        }
       }
-    }
-    if (isAndMatch) {
-      documentMatches.push(documentPool[i])
-      documentPool.splice(i, 1)
-      i -= 1
+      if (isAndMatch) {
+        documentMatches.push(documentPool[i])
+        documentPool.splice(i, 1)
+        i -= 1
+      }
     }
   }
 
