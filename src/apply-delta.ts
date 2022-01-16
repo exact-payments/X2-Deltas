@@ -1,34 +1,6 @@
-
-export type GetFirstPathKey<P> = P extends `${infer K}.${string}`
-  ? K
-  : P
-
-export type GetPathRemainder<P> = P extends `${string}.${infer SP}`
-  ? SP
-  : P
-
-export type GetValueAtPath<O, P> = P extends `${string}.${string}`
-  ? GetFirstPathKey<P> extends keyof O
-    ? GetValueAtPath<O[GetFirstPathKey<P>], GetPathRemainder<P>>
-    : never
-  : P extends keyof O
-    ? O[P]
-    : undefined
-
-export type ExpandPathObject<O extends Record<string, any>> = {
-  [K in keyof O as GetFirstPathKey<K>]: K extends `${string}.${string}`
-    ? ExpandPathObject<{ [SK in GetPathRemainder<K>]: O[K] }>
-    : O[GetPathRemainder<K>]
-}
-
-export type DeepUnset<O extends Record<string, any>, D extends Record<string, any>> = {
-  [K in keyof O as K extends keyof D
-    ? never
-    : K
-  ]: K extends keyof D
-    ? DeepUnset<O[K], D[K]>
-    : O[K]
-}
+import { getMax, getMin } from '.'
+import { Delta, deltaOperators, Operator } from './delta'
+import { DeepUnset, deletePath, ExpandPathObject, getPath, GetValueAtPath, setPath } from './path'
 
 export type ApplyRename<O, U> = U extends { $rename: infer D }
   ? D extends Record<string, string>
@@ -52,144 +24,10 @@ export type ApplySet<O, U> = U extends { $set: infer D }
 export type ApplyUnset<O, U> = U extends { $unset: infer D }
   ? DeepUnset<O, ExpandPathObject<D>> : O
 
-export const deltaOperators = [
-  '$currentDate',
-  '$inc',
-  '$min',
-  '$max',
-  '$mul',
-  '$rename',
-  '$set',
-  '$setOnInsert',
-  '$unset',
-  '$addToSet',
-  '$pop',
-  '$pull',
-  '$push',
-  '$pullAll',
-] as const
-
-export type Delta = {
-  // eslint-disable-next-line @exactpayments/x2/alignment
-  $currentDate?: Record<string, { $type: 'date' } | true>
-  $inc?        : Record<string, number>
-  $min?        : Record<string, any>
-  $max?        : Record<string, any>
-  $mul?        : Record<string, number>
-  $rename?     : Record<string, string>
-  $set?        : Record<string, any>
-  $setOnInsert?: Record<string, any>
-  $unset?      : Record<string, any>
-  $addToSet?   : Record<string, any>
-  $pop?        : Record<string, -1 | 1>
-  $pull?       : Record<string, any>
-  $push?       : Record<string, any>
-  $pullAll?    : Record<string, any[]>
-}
-
-export type Operator = keyof Delta
-
 export type ApplyDeltaResult<
   O extends Record<string, any>,
   U extends Delta,
 > = ApplyCurrentDate<ApplySet<ApplyUnset<ApplyRename<O, U>, U>, U>, U>
-
-export const deltaTypeWeight = [
-  'unknown',
-  'regex',
-  'date',
-  'boolean',
-  'buffer',
-  'array',
-  'object',
-  'string',
-  'number',
-  'null',
-]
-
-export const getType = (value: any) => {
-  if (value instanceof RegExp) {
-    return 'regex'
-  } else if (value instanceof Date) {
-    return 'date'
-  } else if (typeof value === 'boolean') {
-    return 'boolean'
-  } else if (value instanceof Buffer || value instanceof ArrayBuffer) {
-    return 'buffer'
-  } else if (value instanceof Array) {
-    return 'array'
-  } else if (typeof value === 'object') {
-    return 'object'
-  } else if (typeof value === 'string') {
-    return 'string'
-  } else if (typeof value === 'number') {
-    return 'number'
-  } else if (value === null) {
-    return 'null'
-  } else {
-    return 'unknown'
-  }
-}
-
-export const getMin = <A, B>(a: A, b: B): A | B => {
-  if (typeof a === 'number' && typeof b === 'number') {
-    return Math.min(a, b) as any
-  } else if (a instanceof Date && b instanceof Date) {
-    return new Date(Math.min(a.getTime(), b.getTime())) as any
-  } else {
-    return deltaTypeWeight.indexOf(getType(a)) > deltaTypeWeight.indexOf(getType(b))
-      ? a as any
-      : b as any
-  }
-}
-
-export const getMax = <A, B>(a: A, b: B): A | B => {
-  if (typeof a === 'number' && typeof b === 'number') {
-    return Math.max(a, b) as any
-  } else if (a instanceof Date && b instanceof Date) {
-    return new Date(Math.max(a.getTime(), b.getTime())) as any
-  } else {
-    return deltaTypeWeight.indexOf(getType(a)) < deltaTypeWeight.indexOf(getType(b))
-      ? a as any
-      : b as any
-  }
-}
-
-export const setPath = <O extends Record<string, any>, P extends string, V>(object: O, path: P, value: V): O & ExpandPathObject<{ [K in P]: V }> => {
-  const chunks = path.split('.')
-  let ctx      = object as any
-  for (let i = 0; i < chunks.length - 1; i += 1) {
-    /* eslint-disable @exactpayments/x2/alignment */
-    ctx[chunks[i]] ??= {}
-    ctx = ctx[chunks[i]]
-    /* eslint-enable @exactpayments/x2/alignment */
-  }
-  ctx[chunks[chunks.length - 1]] = value
-  return object as any
-}
-
-export const deletePath = <O extends Record<string, any>, P extends string>(object: O, path: P): DeepUnset<O, { [K in P]: true }> => {
-  const chunks = path.split('.')
-  let ctx      = object as any
-  for (let i = 0; i < chunks.length - 1; i += 1) {
-    /* eslint-disable @exactpayments/x2/alignment */
-    ctx[chunks[i]] ??= {}
-    ctx = ctx[chunks[i]]
-    /* eslint-enable @exactpayments/x2/alignment */
-  }
-  delete ctx[chunks[chunks.length - 1]]
-  return object as any
-}
-
-export const getPath = <O extends Record<string, any>, P extends string>(object: O, path: P): GetValueAtPath<O, P> => {
-  const chunks = path.split('.')
-  let ctx      = object as any
-  for (let i = 0; i < chunks.length; i += 1) {
-    if (!ctx[chunks[i]]) { return undefined as any }
-    ctx = ctx[chunks[i]]
-  }
-  return ctx
-}
 
 export const applyCurrentDate = (object: Record<string, any>, currentDatePaths: Record<string, { $type: 'date' } | true>) => {
   for (const path in currentDatePaths) {
@@ -336,19 +174,19 @@ export type ApplyDeltaOptions = {
   asInsert?: boolean
 }
 
-export const applyDelta = <O, U>(
-  object: O,
+export const applyDelta = <T, U, O extends ApplyDeltaOptions>(
+  target: T,
   delta: U,
-  options?: ApplyDeltaOptions,
-): O extends Record<string, any>
+  options?: O,
+): T extends Record<string, any>
     ? U extends Delta
-      ? ApplyDeltaResult<O, U>
+      ? ApplyDeltaResult<T, U>
       : U
-    : O => {
+    : U => {
   const keys = Object.keys(delta)
 
-  if (!object || typeof object !== 'object' || !delta || typeof delta !== 'object') {
-    return object as any
+  if (!target || typeof target !== 'object' || !delta || typeof delta !== 'object') {
+    return target as any
   }
 
   if (keys.some((k: any) => !deltaOperators.includes(k))) {
@@ -357,22 +195,22 @@ export const applyDelta = <O, U>(
 
   for (const operator in delta) {
     switch (operator as Operator) {
-      case '$currentDate': applyCurrentDate(object, delta[operator] as any); break
-      case '$inc': applyInc(object, delta[operator] as any); break
-      case '$min': applyMin(object, delta[operator] as any); break
-      case '$max': applyMax(object, delta[operator] as any); break
-      case '$mul': applyMul(object, delta[operator] as any); break
-      case '$rename': applyRename(object, delta[operator] as any); break
-      case '$set': applySet(object, delta[operator] as any); break
-      case '$setOnInsert': options?.asInsert && (applySet(object, delta[operator] as any)); break
-      case '$unset': applyUnset(object, delta[operator] as any); break
-      case '$addToSet': applyAddToSet(object, delta[operator] as any); break
-      case '$pop': applyPop(object, delta[operator] as any); break
-      case '$pull': applyPull(object, delta[operator] as any); break
-      case '$push': applyPush(object, delta[operator] as any); break
-      case '$pullAll': applyPullAll(object, delta[operator] as any); break
+      case '$currentDate': applyCurrentDate(target, delta[operator] as any); break
+      case '$inc': applyInc(target, delta[operator] as any); break
+      case '$min': applyMin(target, delta[operator] as any); break
+      case '$max': applyMax(target, delta[operator] as any); break
+      case '$mul': applyMul(target, delta[operator] as any); break
+      case '$rename': applyRename(target, delta[operator] as any); break
+      case '$set': applySet(target, delta[operator] as any); break
+      case '$setOnInsert': options?.asInsert && (applySet(target, delta[operator] as any)); break
+      case '$unset': applyUnset(target, delta[operator] as any); break
+      case '$addToSet': applyAddToSet(target, delta[operator] as any); break
+      case '$pop': applyPop(target, delta[operator] as any); break
+      case '$pull': applyPull(target, delta[operator] as any); break
+      case '$push': applyPush(target, delta[operator] as any); break
+      case '$pullAll': applyPullAll(target, delta[operator] as any); break
     }
   }
 
-  return object as any
+  return target as any
 }
