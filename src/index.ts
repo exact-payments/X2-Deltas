@@ -1,1 +1,7 @@
 export * from './apply-delta'
+export * from './apply-query'
+export * from './delta'
+export * from './path'
+export * from './project-delta'
+export * from './project-query'
+export * from './query'
