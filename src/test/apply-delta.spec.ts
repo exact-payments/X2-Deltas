@@ -1,15 +1,31 @@
 import { applyDelta } from '../apply-delta'
 
 describe('applyDelta(target, delta) -> target', () => {
-  it('returns the delta as a replacement document is it isn\'t a valid delta', () => {
+  it('converts a delta with no operators to a $set', () => {
     expect(applyDelta({
       a: 1,
     }, {
       x: 1,
     })).toMatchObject({
+      a: 1,
       x: 1,
     })
   })
+
+  it('returns the delta as a replacement document is it isn\'t a valid delta if configured to do so', () => {
+    const updatedObject = applyDelta({
+      a: 1,
+    }, {
+      x: 1,
+    }, {
+      allowRootSet: false,
+    })
+    expect((updatedObject as any).a).toBeUndefined()
+    expect(updatedObject).toMatchObject({
+      x: 1,
+    })
+  })
+
   describe('$currentDate', () => {
     it('sets the current date at the specified paths', () => {
       expect(applyDelta({
@@ -229,8 +245,8 @@ describe('applyDelta(target, delta) -> target', () => {
   })
 
   describe('$unset', () => {
-    it('unsets values', () => {
-      expect(applyDelta({
+    it('unsets values by setting them to undefined', () => {
+      const updatedObject = applyDelta({
         a: 5,
         c: { a: 5 },
         e: 5,
@@ -242,7 +258,38 @@ describe('applyDelta(target, delta) -> target', () => {
           c    : false,
           e    : '',
         },
-      })).toMatchObject({
+      })
+
+      expect('a' in updatedObject).toBeTruthy()
+      expect('c' in updatedObject).toBeTruthy()
+      expect('e' in updatedObject).toBeTruthy()
+      expect(updatedObject).toMatchObject({
+        b: {},
+        d: 5,
+      })
+    })
+
+    it('unsets values with delete if configured to do so', () => {
+      const updatedObject = applyDelta({
+        a: 5,
+        c: { a: 5 },
+        e: 5,
+        d: 5,
+      }, {
+        $unset: {
+          a    : true,
+          'b.a': true,
+          c    : false,
+          e    : '',
+        },
+      }, {
+        useUndefinedForDelete: false,
+      })
+
+      expect('a' in updatedObject).toBeFalsy()
+      expect('c' in updatedObject).toBeFalsy()
+      expect('e' in updatedObject).toBeFalsy()
+      expect(updatedObject).toMatchObject({
         b: {},
         d: 5,
       })

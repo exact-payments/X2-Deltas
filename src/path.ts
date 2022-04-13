@@ -43,7 +43,7 @@ export const setPath = <O extends Record<string, any>, P extends string, V>(obje
   return object as any
 }
 
-export const deletePath = <O extends Record<string, any>, P extends string>(object: O, path: P): DeepUnset<O, { [K in P]: true }> => {
+export const deletePath = <O extends Record<string, any>, P extends string>(object: O, path: P, useUndefinedForDelete: boolean): DeepUnset<O, { [K in P]: true }> => {
   const chunks = path.split('.')
   let ctx      = object as any
   for (let i = 0; i < chunks.length - 1; i += 1) {
@@ -52,7 +52,11 @@ export const deletePath = <O extends Record<string, any>, P extends string>(obje
     ctx = ctx[chunks[i]]
     /* eslint-enable @exactpayments/x2/alignment */
   }
-  delete ctx[chunks[chunks.length - 1]]
+  if (useUndefinedForDelete) {
+    ctx[chunks[chunks.length - 1]] = undefined
+  } else {
+    delete ctx[chunks[chunks.length - 1]]
+  }
   return object as any
 }
 

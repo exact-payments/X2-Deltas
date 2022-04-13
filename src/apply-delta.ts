@@ -78,11 +78,11 @@ export const applyMul = (object: Record<string, any>, mulPaths: Record<string, n
   }
 }
 
-export const applyRename = (object: Record<string, any>, renamePaths: Record<string, string>) => {
+export const applyRename = (object: Record<string, any>, renamePaths: Record<string, string>, useUndefinedForDelete: boolean) => {
   for (const currentPath in renamePaths) {
     const newPath = renamePaths[currentPath]
     const value   = getPath(object, currentPath)
-    deletePath(object, currentPath)
+    deletePath(object, currentPath, useUndefinedForDelete)
     setPath(object, newPath, value)
   }
 }
@@ -93,9 +93,9 @@ export const applySet = (object: Record<string, any>, setPaths: Record<string, a
   }
 }
 
-export const applyUnset = (object: Record<string, any>, unsetPaths: Record<string, any>) => {
+export const applyUnset = (object: Record<string, any>, unsetPaths: Record<string, any>, useUndefinedForDelete: boolean) => {
   for (const path in unsetPaths) {
-    deletePath(object, path)
+    deletePath(object, path, useUndefinedForDelete)
   }
 }
 
@@ -170,7 +170,9 @@ export const applyPullAll = (object: Record<string, any>, pullAllPaths: Record<s
 }
 
 export type ApplyDeltaOptions = {
-  asInsert?: boolean
+  asInsert?             : boolean
+  useUndefinedForDelete?: boolean
+  allowRootSet?         : boolean
 }
 
 export const applyDelta = <T, U, O extends ApplyDeltaOptions>(
@@ -180,16 +182,23 @@ export const applyDelta = <T, U, O extends ApplyDeltaOptions>(
 ): T extends Record<string, any>
     ? U extends Delta
       ? ApplyDeltaResult<T, U>
-      : U
+      : O['allowRootSet'] extends false
+        ? U
+        : ApplyDeltaResult<T, { $set: U }>
     : U => {
-  const keys = Object.keys(delta)
+  const allowRootSet          = options?.allowRootSet !== false
+  const useUndefinedForDelete = options?.useUndefinedForDelete !== false
 
   if (!target || typeof target !== 'object' || !delta || typeof delta !== 'object') {
     return target as any
   }
 
+  const keys = Object.keys(delta)
   if (keys.some((k: any) => !deltaOperators.includes(k))) {
-    return delta as any
+    if (!allowRootSet) {
+      return delta as any
+    }
+    delta = { $set: delta } as any
   }
 
   for (const operator in delta) {
@@ -199,10 +208,10 @@ export const applyDelta = <T, U, O extends ApplyDeltaOptions>(
       case '$min': applyMin(target, delta[operator] as any); break
       case '$max': applyMax(target, delta[operator] as any); break
       case '$mul': applyMul(target, delta[operator] as any); break
-      case '$rename': applyRename(target, delta[operator] as any); break
+      case '$rename': applyRename(target, delta[operator] as any, useUndefinedForDelete); break
       case '$set': applySet(target, delta[operator] as any); break
       case '$setOnInsert': options?.asInsert && (applySet(target, delta[operator] as any)); break
-      case '$unset': applyUnset(target, delta[operator] as any); break
+      case '$unset': applyUnset(target, delta[operator] as any, useUndefinedForDelete); break
       case '$addToSet': applyAddToSet(target, delta[operator] as any); break
       case '$pop': applyPop(target, delta[operator] as any); break
       case '$pull': applyPull(target, delta[operator] as any); break
