@@ -2,9 +2,10 @@
 * @RobertWHurst
 
 # Source Reviewers
-*.js @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst
-*.json @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst
-/src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst
+*.lock @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
+*.js @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
+*.json @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
+/src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
 
 # Operations
 Dockerfile @sekka1 @mybarretto @RobertWHurst
