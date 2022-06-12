@@ -14,6 +14,16 @@ export type ApplyCurrentDate<O, U> = U extends { $currentDate: infer D }
     : O
   : O
 
+export type ApplyPush<O, U> = U extends { $push: infer D }
+  ? D extends Record<string, any>
+    ? O & ExpandPathObject<{
+      [K in keyof D]: D[K] extends { $each: infer E }
+        ? E
+        : D[K][]
+    }>
+    : O
+  : O
+
 export type ApplySet<O, U> = U extends { $set: infer D }
   ? D extends Record<string, any>
     ? DeepUnset<O, D> & ExpandPathObject<D>
@@ -26,7 +36,7 @@ export type ApplyUnset<O, U> = U extends { $unset: infer D }
 export type ApplyDeltaResult<
   O extends Record<string, any>,
   U extends Delta,
-> = ApplyCurrentDate<ApplySet<ApplyUnset<ApplyRename<O, U>, U>, U>, U>
+> = ApplyPush<ApplyCurrentDate<ApplySet<ApplyUnset<ApplyRename<O, U>, U>, U>, U>, U>
 
 export const applyCurrentDate = (object: Record<string, any>, currentDatePaths: Record<string, { $type: 'date' } | true>) => {
   for (const path in currentDatePaths) {
@@ -151,11 +161,48 @@ export const applyPull = (object: Record<string, any>, pullPaths: Record<string,
 
 export const applyPush = (object: Record<string, any>, pushPaths: Record<string, any>) => {
   for (const path in pushPaths) {
-    const value = getPath(object, path)
-    if (!(value instanceof Array)) { continue }
+    let value = getPath(object, path)
+    if (value === undefined) {
+      value = []
+      setPath(object, path, value)
+    }
+    if (!(value instanceof Array)) {
+      throw new Error('trying to push into non array path')
+    }
     const itemToPush = pushPaths[path]
-    // TODO: Handle $each, $slice, $sort, and $position
-    value.push(itemToPush)
+    if (itemToPush && typeof itemToPush === 'object' && '$each' in itemToPush) {
+      const itemsToPush = itemToPush.$each
+      let sort          = itemToPush.$sort
+      const slice       = itemToPush.$slice
+      const position = '$position' in itemToPush
+        ? Math.min(itemToPush.$position, value.length)
+        : value.length
+      value.splice(position, 0, ...itemsToPush)
+      if (value.length > slice) { value.length = slice }
+      if (sort) {
+        if (typeof sort === 'number') {
+          value.sort((a, b) => a > b ? sort : a < b ? -sort : 0)
+        } else if (typeof sort === 'object') {
+          if (typeof sort.length !== 'number') { sort = [sort] }
+          for (const sortObj of sort) {
+            const sortEntries = Object.entries(sortObj)
+            sortEntries.sort(([a], [b]) => a > b ? 1 : a < b ? -1 : 0)
+            for (const [keyPath, keySort] of sortEntries) {
+              if (typeof keySort !== 'number') { throw new Error('sort value must be numeric') }
+              value.sort((aObj, bObj) => {
+                const a = getPath(aObj, keyPath)
+                const b = getPath(bObj, keyPath)
+                return a > b ? keySort : a < b ? -keySort : 0
+              })
+            }
+          }
+        } else {
+          throw new Error('sort value must be numeric')
+        }
+      }
+    } else {
+      value.push(itemToPush)
+    }
   }
 }
 
