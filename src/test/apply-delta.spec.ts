@@ -382,7 +382,6 @@ describe('applyDelta(target, delta) -> target', () => {
         a: [1, 2, 3],
         c: { a: [1, 2, 2, 3] },
         d: [5],
-        e: 5,
         f: 1,
       }, {
         $push: {
@@ -394,9 +393,128 @@ describe('applyDelta(target, delta) -> target', () => {
         },
       })).toMatchObject({
         a: [1, 2, 3, 1],
+        b: { a: [2] },
         c: { a: [1, 2, 2, 3, 2] },
         d: [5, 1],
-        e: 5,
+        e: [5],
+        f: 1,
+      })
+    })
+
+    it('works with $each', () => {
+      expect(applyDelta({
+        a: [1, 2, 3],
+        c: { a: [1, 2, 2, 3] },
+        d: [5],
+        f: 1,
+      }, {
+        $push: {
+          a    : { $each: [1, 2] },
+          'b.a': { $each: [2, 4] },
+          'c.a': { $each: [2, 7] },
+          d    : { $each: [1] },
+          e    : { $each: [5] },
+        },
+      })).toMatchObject({
+        a: [1, 2, 3, 1, 2],
+        b: { a: [2, 4] },
+        c: { a: [1, 2, 2, 3, 2, 7] },
+        d: [5, 1],
+        e: [5],
+        f: 1,
+      })
+    })
+
+    it('works with $slice', () => {
+      expect(applyDelta({
+        a: [1, 2, 3],
+        c: { a: [1, 2, 2, 3] },
+        d: [5],
+        f: 1,
+      }, {
+        $push: {
+          a    : { $each: [1, 2], $slice: 4 },
+          'b.a': { $each: [2, 4], $slice: 1 },
+          'c.a': { $each: [], $slice: 3 },
+          d    : { $each: [1], $slice: 10 },
+          e    : { $each: [5], $slice: 0 },
+        },
+      })).toMatchObject({
+        a: [1, 2, 3, 1],
+        b: { a: [2] },
+        c: { a: [1, 2, 2] },
+        d: [5, 1],
+        e: [],
+        f: 1,
+      })
+    })
+
+    it('works with $sort', () => {
+      expect(applyDelta({
+        a: [1, 2, 3],
+        c: {
+          a: [
+            { a: 1, b: 2 },
+            { a: 2, b: 1 },
+            { a: 2, b: 3 },
+            { a: 3 },
+          ],
+        },
+        d: [5],
+        f: 1,
+      }, {
+        $push: {
+          a    : { $each: [1, 2], $sort: 1 },
+          'b.a': { $each: [2, 4], $sort: -1 },
+          'c.a': {
+            $each: [
+              { a: 2, b: 7 },
+              { b: 7 },
+            ],
+            $sort: { a: 1, b: -1 },
+          },
+          d: { $each: [1], $sort: 1 },
+          e: { $each: [5], $sort: -1 },
+        },
+      })).toMatchObject({
+        a: [1, 1, 2, 2, 3],
+        b: { a: [4, 2] },
+        c: {
+          a: [
+            { a: 2, b: 7 },
+            { b: 7 },
+            { a: 2, b: 3 },
+            { a: 1, b: 2 },
+            { a: 2, b: 1 },
+            { a: 3 },
+          ],
+        },
+        d: [1, 5],
+        e: [5],
+        f: 1,
+      })
+    })
+
+    it('works with $position', () => {
+      expect(applyDelta({
+        a: [1, 2, 3],
+        c: { a: [1, 2, 2, 3] },
+        d: [5],
+        f: 1,
+      }, {
+        $push: {
+          a    : { $each: [1, 2], $position: 0 },
+          'b.a': { $each: [2, 4], $position: 1 },
+          'c.a': { $each: [2, 7], $position: 3 },
+          d    : { $each: [1], $position: 0 },
+          e    : { $each: [5], $position: 10 },
+        },
+      })).toMatchObject({
+        a: [1, 2, 1, 2, 3],
+        b: { a: [2, 4] },
+        c: { a: [1, 2, 2, 2, 7, 3] },
+        d: [1, 5],
+        e: [5],
         f: 1,
       })
     })
