@@ -1,14 +1,14 @@
 # Team Lead
-* @RobertWHurst
+* @javier-cervantes-3pillarglobal @rubenmezar @aviquez-3pillar
 
 # Source Reviewers
-*.lock @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
-*.js @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
-*.json @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
-/src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @RobertWHurst @bevanhunt
+*.lock @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @bevanhunt @3rickgamez
+*.js @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @bevanhunt @3rickgamez
+*.json @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @bevanhunt @3rickgamez
+/src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @bevanhunt @3rickgamez
 
 # Operations
-Dockerfile @sekka1 @mybarretto @RobertWHurst
-Dockerfile.* @sekka1 @mybarretto @RobertWHurst
-.dockerignore @sekka1 @mybarretto @RobertWHurst
-/.github/workflows/ @sekka1 @mybarretto @RobertWHurst
+Dockerfile @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
+Dockerfile.* @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
+.dockerignore @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
+/.github/workflows/ @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
