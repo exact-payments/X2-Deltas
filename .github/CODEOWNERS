@@ -8,7 +8,4 @@
 /src/ @rubenmezar @javier-cervantes-3pillarglobal @aviquez-3pillar @bevanhunt @3rickgamez
 
 # Operations
-Dockerfile @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
-Dockerfile.* @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
-.dockerignore @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
 /.github/workflows/ @sekka1 @mybarretto @javier-cervantes-3pillarglobal @bcarranza
